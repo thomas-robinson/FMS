@@ -1,0 +1,8 @@
+{
+
+"files":{"atmos_monthly","atmos_daily","atmos_8xdaily",
+          "atmos_4xdaily", "atmos_diurnal"},
+
+"files":{"land_monthly_inst"}
+
+}

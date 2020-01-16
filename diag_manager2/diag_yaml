@@ -1,0 +1,56 @@
+---
+diag_files:
+-    name: atmos_8xdaily
+     freq: 3
+     frequnit: hours
+     timeunit: days
+     unlimdim: time
+-    name: grid_spec
+     freq: -1
+     frequnit: months
+     timeunit: days
+     unlimdim: "time"
+-    name: "atmos_daily"
+     freq: 24
+     frequnit: hours
+     timeunit: days
+     unlimdim: time
+-    name: atmos_month
+     freq: 1
+     frequnit: months
+     timeunit: days
+     unlimdim: time
+
+diag_fields: 
+-    name: tdata
+     var:  tdata
+     files: [atmos_daily]
+     all: all
+     reduction: [False]
+     region: [none]
+     kind: double
+     module: "moist"
+-    name: precip
+     var:  precip
+     files: [atmos_8xdaily]
+     all: all
+     reduction: [False]
+     region: [none]
+     kind: double
+     module: "moist"
+-    name: u10
+     var:  u_ref
+     files: [atmos_4xdaily]
+     all: all
+     reduction: [False]
+     region: [none]
+     kind: double
+     module: "flux"
+
+diag_files:
+-    name: land_monthly
+     freq: 1
+     frequnit: months
+     timeunit: days
+     unlimdim: time
+...

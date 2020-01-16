@@ -1,0 +1,5 @@
+&diag_manager_nml
+diag_concurrent = .true.
+diag_pes = 6
+verbose = .true.
+/

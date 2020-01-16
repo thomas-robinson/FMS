@@ -1,0 +1,4 @@
+ &diag_table_nml 
+ diag_table_name = "diag_table"
+ verbose = .t
+/
