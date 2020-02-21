@@ -13,8 +13,8 @@ use fms_diag_data_mod,  only: r8, r4, i8, i4, string, null_type_int
 use fms_diag_data_mod,  only: diag_null, diag_not_found, diag_not_registered, diag_registered_id
 use fms_diag_table_mod, only: is_field_type_null
 use fms_diag_table_mod, only: diag_fields_type, diag_files_type, get_diag_table_field
-use fms_diag_axis_mod,  only: diag_axis_type
 use fms_diag_util_mod,  only: int_to_cs, logical_to_cs
+use fms_diag_axis_mod,  only: diag_axis_type
 
 
 implicit none
@@ -46,16 +46,15 @@ end interface
 
 
 !> \brief Object that holds all variable information
-type fms_diag_object
+type    fms_diag_object
      type (diag_fields_type)                           :: diag_field         !< info from diag_table
      type (diag_files_type),allocatable, dimension(:)  :: diag_file          !< info from diag_table
      integer, allocatable, private                    :: diag_id           !< unique id for varable
-     type (fms_io_obj), allocatable, dimension(:)     :: fms_fileobj        !< fileobjs
+     type (fms_io_obj), allocatable, dimension(:)     :: fms_fileobj        !< fileobjs !!TODO use file class?
      character(len=:), allocatable, dimension(:)      :: metadata          !< metedata for the variable
      logical, private                                 :: static         !< true is this is a static var
      logical, allocatable, private                    :: registered     !< true when registered
      integer, allocatable, dimension(:), private      :: frequency         !< specifies the frequency
-
      integer,          allocatable, private           :: vartype           !< the type of varaible
      character(len=:), allocatable, private           :: varname           !< the name of the variable     
      character(len=:), allocatable, private           :: longname          !< longname of the variable     
@@ -63,10 +62,10 @@ type fms_diag_object
      character(len=:), allocatable, private           :: modname           !< the module
      integer, private                                 :: missing_value     !< The missing fill value
      integer, allocatable, dimension(:), private      :: axis_ids          !< variable axis IDs
-     type (diag_axis_type), allocatable, dimension(:)      :: axis              !< The axis object
+     type (diag_axis_type), allocatable, dimension(:) :: axis              !< The axis object
 
      contains
-!     procedure :: send_data => fms_send_data  !!TODO
+     procedure :: send_data => send_data_base
      procedure :: init_ob => diag_obj_init
      procedure :: diag_id_inq => fms_diag_id_inq
      procedure :: copy => copy_diag_obj
@@ -76,37 +75,61 @@ type fms_diag_object
      procedure :: set_type => set_vartype
      procedure :: vartype_inq => what_is_vartype
 
+     procedure :: set_axis_rid => set_axis_reg_id
+     procedure :: get_axis_rid => get_axis_reg_id
+
      procedure :: is_static => diag_obj_is_static
      procedure :: is_registeredB => diag_obj_is_registered
      procedure :: get_vartype => diag_obj_get_vartype
      procedure :: get_varname => diag_obj_get_varname
+     procedure :: set_varname => diag_obj_set_varname
 
+     procedure :: print_testc => diag_obj_print_testc
 end type fms_diag_object
+
 !> \brief Extends the variable object to work with multiple types of data
 type, extends(fms_diag_object) :: fms_diag_object_scalar
      class(*), allocatable :: vardata
+contains
+!     procedure :: send_data => send_data_scalar !!TODO
 end type fms_diag_object_scalar
+
 type, extends(fms_diag_object) :: fms_diag_object_1d
      class(*), allocatable, dimension(:) :: vardata
+contains
+     !procedure :: send_data => send_data_1d  !!TODO
 end type fms_diag_object_1d
+
 type, extends(fms_diag_object) :: fms_diag_object_2d
      class(*), allocatable, dimension(:,:) :: vardata
+contains
+     !procedure :: send_data => send_data_2d  !!TODO
 end type fms_diag_object_2d
-type, extends(fms_diag_object) :: fms_diag_object_3d
-     class(*), allocatable, dimension(:,:,:) :: vardata
-end type fms_diag_object_3d
+
+!TODO: Moved to its own file
+!type, extends(fms_diag_object) :: fms_diag_object_3d
+!     class(*), allocatable, dimension(:,:,:) :: vardata
+!contains
+!    procedure :: send_data => send_data_3d
+!end type fms_diag_object_3d
+
 type, extends(fms_diag_object) :: fms_diag_object_4d
-     class(*), allocatable, dimension(:,:,:,:) :: vardata
+
+contains
+     !procedure :: send_data => send_data_4d  !!TODO:
 end type fms_diag_object_4d
+
 type, extends(fms_diag_object) :: fms_diag_object_5d
      class(*), allocatable, dimension(:,:,:,:,:) :: vardata
+contains
+     !procedure :: send_data => send_data_5d !!TODO:
 end type fms_diag_object_5d
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! variables !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 type(fms_diag_object) :: null_ob
 type(fms_diag_object_scalar) :: null_sc
 type(fms_diag_object_1d) :: null_1d
 type(fms_diag_object_2d) :: null_2d
-type(fms_diag_object_3d) :: null_3d
+!!type(fms_diag_object_3d) :: null_3d
 type(fms_diag_object_4d) :: null_4d
 type(fms_diag_object_5d) :: null_5d
 
@@ -114,10 +137,13 @@ integer,private :: MAX_LEN_VARNAME
 integer,private :: MAX_LEN_META
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 public :: fms_diag_object, fms_diag_object_scalar, fms_diag_object_1d
-public :: fms_diag_object_2d, fms_diag_object_3d, fms_diag_object_4d, fms_diag_object_5d
+!!public :: fms_diag_object_2d, fms_diag_object_3d, fms_diag_object_4d, fms_diag_object_5d !!MZ TODO:
+public :: fms_diag_object_2d, fms_diag_object_4d, fms_diag_object_5d
+
 public :: copy_diag_obj, fms_diag_id_inq
 public :: operator (>),operator (<),operator (>=),operator (<=),operator (==),operator (.ne.)
-public :: null_sc, null_1d, null_2d, null_3d, null_4d, null_5d
+!public :: null_sc, null_1d, null_2d, null_3d, null_4d, null_5d   !!MZ TODO:
+public :: null_sc, null_1d, null_2d, null_4d, null_5d
 public :: fms_diag_object_init
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -135,7 +161,7 @@ subroutine fms_diag_object_init (mlv,mlm)
  null_sc%diag_id = DIAG_NULL
  null_1d%diag_id = DIAG_NULL
  null_2d%diag_id = DIAG_NULL
- null_3d%diag_id = DIAG_NULL
+ !null_3d%diag_id = DIAG_NULL
  null_4d%diag_id = DIAG_NULL
  null_5d%diag_id = DIAG_NULL
 end subroutine fms_diag_object_init
@@ -175,7 +201,7 @@ subroutine fms_register_diag_field_obj (dobj, modname, varname, axes, time, long
      dobj%vartype = diag_null
      return
   endif
-!> get the optional arguments if included and the diagnostic is in the diag table
+!> get the optional arguments if included and the diagnostic is in the diag tablesend_data => send_data_base
   if (present(longname)) then
      allocate(character(len=len(longname)) :: dobj%longname)
      dobj%longname = trim(longname)
@@ -210,6 +236,7 @@ subroutine set_diag_id(objin , id)
      objin%diag_id = id
  endif
 end subroutine set_diag_id
+
 !> \brief Find the type of the variable and store it in the object
 subroutine set_vartype(objin , var)
  class (fms_diag_object) , intent(inout):: objin
@@ -231,6 +258,7 @@ subroutine set_vartype(objin , var)
           " r8, r4, i8, i4, or string.", warning) 
  end select
 end subroutine set_vartype
+
 !> \brief Prints to the screen what type the diag variable is
 subroutine what_is_vartype(objin)
  class (fms_diag_object) , intent(inout):: objin
@@ -262,6 +290,7 @@ subroutine what_is_vartype(objin)
           " is not supported by diag_manager", FATAL)
  end select
 end subroutine what_is_vartype
+
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!MZ Is this a TODO. Many problems:
 !> \brief Registers the object
@@ -270,29 +299,46 @@ subroutine diag_ob_registered(objin , reg)
  logical                      , intent(in)   :: reg !< If registering, this is true
  objin%registered = reg
 end subroutine diag_ob_registered
+
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!> \brief Copies the calling object into the object that is the argument of the subroutine
+!> \brief Copies the calling object into the object that is the argument of the subroutine.
+!! The input object is not copied if it is not registered.
 subroutine copy_diag_obj(objin , objout)
- class (fms_diag_object)      , intent(in)                :: objin
- class (fms_diag_object)      , intent(inout) , allocatable :: objout !< The destination of the copy
-select type (objout)
- class is (fms_diag_object)
+ class (fms_diag_object)    , intent(in)                :: objin
+ class (fms_diag_object)    , intent(inout) , allocatable :: objout !< The destination of the copy
 
-  if (allocated(objin%registered)) then
-     objout%registered = objin%registered
-  else
-     call diag_error("copy_diag_obj", "You can only copy objects that have been registered",warning)
-  endif
-!     type (diag_fields_type)                           :: diag_field         !< info from diag_table
-!     type (diag_files_type),allocatable, dimension(:)  :: diag_file          !< info from diag_table
+ select type (objout)
+    class is (fms_diag_object)
+    if (allocated(objin%registered)) then
+        objout%registered = objin%registered
+    else
+        call diag_error("copy_diag_obj", "You can only copy objects that have been registered",warning)
+    endif
+    objout%diag_field = objin%diag_field
+    if(allocated(objin%diag_file)) objout%diag_file = objin%diag_file
 
-     objout%diag_id = objin%diag_id           
+    if(allocated(objin%diag_id)) objout%diag_id = objin%diag_id
 
-!     class (fms_io_obj), allocatable, dimension(:)    :: fms_fileobj        !< fileobjs
-     if (allocated(objin%metadata)) objout%metadata = objin%metadata
-     objout%static = objin%static         
+
      if (allocated(objin%frequency)) objout%frequency = objin%frequency
      if (allocated(objin%varname)) objout%varname = objin%varname
+
+     !! TODO: if(allocated(objin%fms_files))
+
+     if (allocated(objin%fms_fileobj)) objout%fms_fileobj  = objin%fms_fileobj
+     if (allocated(objin%metadata))   objout%metadata = objin%metadata
+     objout%static = objin%static
+     if (allocated(objin%registered)) objout%registered  = objin%registered
+     if (allocated(objin%frequency))  objout%frequency  = objin%frequency
+     if (allocated(objin%vartype))   objout%vartype  = objin%vartype
+     if (allocated(objin%varname))   objout%varname  = objin%varname
+     if (allocated(objin%longname))   objout%longname  = objin%longname
+     if (allocated(objin%units))   objout%units  = objin%units
+     if (allocated(objin% modname))   objout%modname  = objin%modname
+     objout%missing_value  = objin%missing_value
+     if (allocated(objin%axis_ids))   objout%axis_ids  = objin%axis_ids
+     if (allocated(objin%axis))   objout%axis  = objin%axis
+
 end select
 end subroutine copy_diag_obj
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -377,6 +423,55 @@ function diag_obj_get_varname(obj) result (rslt)
     character(len=len(obj%varname)) :: rslt
     rslt = obj%varname
 end function diag_obj_get_varname
+
+subroutine diag_obj_set_varname(obj, the_name)
+    class(fms_diag_object), intent(inout) :: obj
+    character(len=*), intent(in) :: the_name
+    obj%varname = the_name
+end subroutine diag_obj_set_varname
+
+!!TODO: Need a data structure other then the 1D axis_ids
+!! Get the axis registration id - per
+function  get_axis_reg_id(this, ai, fi) result (rslt)
+    class(fms_diag_object), intent(in) :: this
+    integer, intent(in) :: ai !!The id in axis array
+    integer, intent(in) :: fi !!The file id
+    integer  :: rslt
+    rslt = this%axis_ids (ai) !!TODO: Fix 2D
+end function
+
+subroutine set_axis_reg_id(this, ai, fi, axid)
+    class(fms_diag_object), intent (inout) :: this
+    integer, intent(in) :: ai !!The id in axis array
+    integer, intent(in) :: fi !!The file id
+    integer, intent(in) :: axid
+    this%axis_ids (ai)  = axid  !!TODO: Fix 2D
+end subroutine
+!! This is just a static version
+
+subroutine send_data_base(diag_obj, time, is_in, js_in, ks_in, mask, &
+                         rmask, ie_in, je_in, ke_in, weight, err_msg)
+    class (fms_diag_object),    intent(in)                     :: diag_obj
+    !class(*), dimension(:)   , intent(in) , target         :: var !< The variable !!TODO class(*) vs real
+    integer, optional            , intent(in)                  :: time !< A time place holder
+    integer, optional            , intent(in)                  :: is_in !< Start of the first dimension
+    integer, optional            , intent(in)                  :: js_in !< Start of the second dimension
+    integer, optional            , intent(in)                  :: ks_in !< Start of the third dimension
+    integer, optional            , intent(in)                  :: ie_in !< End of the first dimension
+    integer, optional            , intent(in)                  :: je_in !< End of the second dimension
+    integer, optional            , intent(in)                  :: ke_in !< End of the third dimension
+    logical, optional            , intent(in)                  :: mask !< A lask for point to ignore
+    real   , optional            , intent(in)                  :: rmask !< I DONT KNOW
+    real   , optional            , intent(in)                  :: weight !< Something for averaging?
+    CHARACTER(len=*)             , INTENT(out), OPTIONAL       :: err_msg
+    call diag_error("send_data_base", "Bad function call; use send_data of derived object.", WARNING)
+end subroutine
+
+subroutine diag_obj_print_testc(this, iv)
+    class (fms_diag_object), intent(in)  :: this
+    class(*), intent(in) :: iv
+end subroutine
+
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

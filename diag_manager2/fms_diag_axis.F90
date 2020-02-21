@@ -1,8 +1,7 @@
 module fms_diag_axis_mod
 
 use fms_diag_data_mod, only: diag_error, fatal, note, warning
-use fms2_io
-
+use fms2_io_mod
 
 type domain1d
  integer :: filler
@@ -36,6 +35,9 @@ type diag_axis_type
      character (len=:), dimension(:), allocatable :: attributes !< The axis metadata
      logical, allocatable :: initialized
 
+contains
+    procedure :: send_data => send_data_generic
+
 end type diag_axis_type
 
 
@@ -65,7 +67,11 @@ type(diag_axis_type), allocatable :: Axes_temp(:)
 public :: diag_axis_type
 public :: UP, DOWN, VOID_AXIS, HORIZONTAL
 
+
+
 contains
+
+!!TODO: Missing axis position? Like NORTH, EAST, CENTER
 
 type(diag_axis_type) function fms_diag_axis_init (axis, aname, adata, units, cart, long_name, direction,&
        & set_name, edges, Domain, Domain2, DomainU, aux, req, tile_count, start, ending, attributes)
@@ -258,7 +264,8 @@ type(diag_axis_type) function fms_diag_axis_init (axis, aname, adata, units, car
        axis%DomainU = DomainU
     else
        !axis%Domain2 = null_domain2
-       !axis%Domain = null_domain1
+       !axis%Domain = null_domain1             if (trim(uppercase(trim(axis_cart_name))) .eq. "X" .or. trim(uppercase(trim(axis_cart_name))) .eq. "Y") then
+
        !axis%DomainU = null_domainU
     end if
   end if
@@ -283,5 +290,71 @@ integer function get_axis_set_num(set_name)
        end if
     end do
 end function get_axis_set_num
+
+
+
+
+!! Register and write the information of the axis.
+!! Assumes: axes object is initalized by this point
+!! TODO : It would be convenient to store axis info inside the axis object
+!!      so that conversions (e.g. character case) are not needed for writing or testing.
+!! TODO : Other file types besides FmsNetcdfFile_t
+!! REFERENCE: See functions diag_util.F90::opening_file and diag_output.F90::write_axis_meta_data
+!!   and write_field_meta_data
+subroutine send_data_generic(this, fobj)
+    class(diag_axis_type),   intent(inout)   :: this
+    type(FmsNetcdfFile_t),  intent(inout)   :: fobj
+    class(FmsNetcdfFile_t), pointer    :: fptr
+    !!
+    select type (fptr) !! Also check X or Y axis
+        type is (FmsNetcdfUnstructuredDomainFile_t)
+            call send_data_ncd_udft(this, fptr)
+        type is (FmsNetcdfDomainFile_t)
+            call send_data_ncd_dft(this, fptr)
+        class default
+            call error_mesg("diag_output_mod::write_axis_meta_data", &
+                   "The file object is not the right type. It must be FmsNetcdfDomainFile_t for a "//&
+                    "X or Y axis", FATAL)
+    end select
+end subroutine send_data_generic
+
+subroutine send_data_ncd_common(axis, fobj)
+    type(diag_axis_type),   intent(inout)   :: axis
+    type(FmsNetcdfFile_t),  intent(inout)   :: fobj
+
+    integer :: axis_pos = 0 !! TODO
+
+    !!Not needed if (.not.variable_exists(fobj, axis_name)) then ??
+    call register_axis(fobj, axis%aname, size(axis%adata))
+    call register_field(fobj, axis%aname, "double", (/ axis%aname /))
+    if(trim(axis%units) .ne. "none") call register_variable_attribute(fobj, axis%aname, "units", axis%units)
+    call register_variable_attribute(fobj, axis%aname, "long_name", axis%longname)
+    if(trim(axis%cart).ne."N") call register_variable_attribute(fobj, axis%aname, "axis",trim(axis%cart))
+    select case (axis%direction)
+        case (1)
+            call register_variable_attribute(fobj, axis%aname, "positive", "up")
+        case (-1)
+            call register_variable_attribute(fobj, axis%aname, "positive", "down")
+    end select
+     call write_data(fobj, axis%aname, axis%adata)
+end subroutine send_data_ncd_common
+
+subroutine send_data_ncd_dft(axis, fobj)
+    type(diag_axis_type),   intent(inout)   :: axis
+    type(FmsNetcdfDomainFile_t),  intent(inout)   :: fobj
+    !!Not needed if (.not.variable_exists(fobj, axis_name)) then ??
+    call send_axis_ncd_basic(axis, fobj)
+end subroutine send_data_ncd_dft
+
+
+
+subroutine send_data_ncd_udft(axis, fobj)
+    type(diag_axis_type),   intent(inout)   :: axis
+    type(FmsNetcdfUnstructuredDomainFile_t),  intent(inout)   :: fobj
+    !!Not needed if (.not.variable_exists(fobj, axis_name)) then ??
+    call send_axis_ncd_basic(axis, fobj)
+end subroutine send_data_ncd_udft
+
+
 
 end module fms_diag_axis_mod
