@@ -1,9 +1,10 @@
 module fms_diag_send_data_mod
 
 use fms_diag_averaging_mod, only: get_average, alloc_subarray
-use fms_diag_write_data_mod, only: write_static
+!!use fms_diag_write_data_mod, only: write_static  !!TODO: MZ
 use fms_diag_data_mod,  only: diag_null, diag_error, fatal, note, warning
 use fms_diag_object_mod
+use fms_diag_object_3d_mod
 !> \descrption The user API for diag_manager is send_data.  Users pass their variable object to
 !! this routine, and magic happens.
 !! - Check if the diagnostic object is allocated/registered.  If it isn't return.
@@ -58,6 +59,7 @@ subroutine fms_send_data1d(diagobj, var)
  call switch_to_right_type(diagobj, null_1d, var(lbound(var,1)))
 
 end subroutine fms_send_data1d
+
 !> \descrption 4D wrapper for fms_send_data
 subroutine fms_send_data4d(diagobj, var, time, is_in, js_in, ks_in, mask, &
                                    rmask, ie_in, je_in, ke_in, weight, err_msg)
@@ -142,9 +144,7 @@ end subroutine fms_send_data2d
 subroutine fms_send_data3d (diagobj, var, varname, time, is_in, js_in, ks_in, mask, &
                                    rmask, ie_in, je_in, ke_in, weight, err_msg)
  class (fms_diag_object),target, intent(inout), allocatable :: diagobj !< The diag variable object
- !! TODO: real vs char(*)
- !!class(*), dimension(:,:,:)   , intent(in) , target         :: var !< The variable
- real(kind=8), dimension(:,:,:)   , intent(in) , target         :: var !< The variable
+ class(*), dimension(:,:,:)   , intent(in) , target         :: var !< The variable
  class(*), dimension(:,:,:)   ,              pointer        :: vptr => NULL() !< A pointer to the data
  character(len=*), intent(in)                               :: varname  !!TODO: Is this neccesary
  integer, optional            , intent(in)                  :: time !< A time place holder
@@ -159,29 +159,36 @@ subroutine fms_send_data3d (diagobj, var, varname, time, is_in, js_in, ks_in, ma
  real   , optional            , intent(in)                  :: weight !< Something for averaging?
  CHARACTER(len=*)             , INTENT(out), OPTIONAL       :: err_msg
 ! local vars
- class (fms_diag_object)      , pointer                     :: dptr => NULL()
+ class (fms_diag_object_3d)      , pointer                     :: dptr => NULL()
 
 !
 !> If the diagnostic object is not allocated, then return
- if (.not. allocated( diagobj )) then
-    call diag_error("fms_send_data3d", "The diag object " // diagobj%get_varname() // &
-          " is not allocated", WARNING)
- endif
- return
+    if (.not. allocated( diagobj )) then
+     call diag_error("fms_send_data3d", "The diag object " // diagobj%get_varname() // &
+             " is not allocated", WARNING)
+    endif
+    return
 
-!> If this is the first call in, set the type to be fms_diag_object_3d
-!> first check if already of type 3d
- call switch_to_right_type(diagobj, null_3d, var(lbound(var,1),lbound(var,2),lbound(var,3)) )
+    !> If this is the first call in, set the type to be fms_diag_object_3d
+    !> first check if already of type 3d
+   !call switch_to_right_type(diagobj, null_3d, var)
+   call switch_to_3d(diagobj, var, varname)
 
 !> If the diagnostic object is not registered, then return.
-if(.not. diagobj%is_registeredB()) return
+if(.not. diagobj%is_registeredB())then
+    call diag_error("fms_send_data3d", "The diag object " // diagobj%get_varname() // &
+          " is not registered", WARNING)
+    return
+endif
 
 !> Write the object if its static
 !> TODO: Only if its not yet writtennetcd
 if ( .not. diagobj%is_static() ) then
-    call write_static(diagobj, var, varname, time, is_in, js_in, ks_in, mask, &
-                      rmask, ie_in, je_in, ke_in, weight, err_msg)
-!else write dynamic
+    call diagobj%send_data(time, is_in, js_in, ks_in, mask, &
+                            rmask, ie_in, je_in, ke_in, weight, err_msg)
+else
+    call diag_error("fms_send_data3d", "dynamic snd_data" // diagobj%get_varname() // &
+          " is not yet implemented", WARNING)
 endif
 end subroutine fms_send_data3d
 
@@ -198,6 +205,7 @@ subroutine switch_to_right_type(diagobj, null_obj,var)
  class (*)              ,intent (in)                        :: var
  class (fms_diag_object), allocatable                       :: dcopy
  class (fms_diag_object), pointer                           :: dptr => NULL()
+  class (fms_diag_object), allocatable                      :: dcopy_3d
  
  dptr => diagobj
  select type (dptr)
@@ -213,8 +221,31 @@ subroutine switch_to_right_type(diagobj, null_obj,var)
  end select
  if (allocated(dcopy)) deallocate(dcopy)
  if (associated(dptr)) nullify(dptr) !> Dont leak memory
- 
+
 end subroutine switch_to_right_type
+
+
+subroutine switch_to_3d(diagobj, var, varname)
+    class (fms_diag_object), intent(inout), allocatable, target :: diagobj !< The diag variable object
+    class(*), dimension(:,:,:)   , intent(in) , target  :: var
+    character(len=*), intent(in)                        :: varname
+    class (fms_diag_object_3d), allocatable  :: obj_3d
+    class (fms_diag_object), pointer                    :: dptr => NULL()
+    class (fms_diag_object), pointer                    :: dptr_3d => NULL()
+    dptr => diagobj
+    !!dptr_3d => obj_3d
+    select type (dptr)
+     type is (fms_diag_object_3d)  !!TODO type_is vs class_is
+        dptr%vardata = var
+        call dptr%set_varname (varname)
+     class default
+          !obj_3d = fms_diag_object_3d(diagobj, var) TODO: cant work witout something like this.
+          obj_3d%vardata = var
+          call obj_3d%set_varname(varname)
+          deallocate(diagobj)
+          diagobj = obj_3d
+ end select
+end subroutine switch_to_3d
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 subroutine fms_send_data
 

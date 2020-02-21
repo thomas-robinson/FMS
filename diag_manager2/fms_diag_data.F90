@@ -52,6 +52,21 @@ type, bind(c) :: diag_fields_type
      character (c_char) :: key(8) !< Storage for the key in the yaml file
 end type diag_fields_type
 
+
+!> Extension via containment of diag_fileds
+!!  for providing write decisions functionality
+type diag_file_plus_type
+    type(diag_files_type) :: diag_file
+    character(len=:), allocatable :: name
+    integer   :: period
+    integer   :: start_time
+    integer   :: end_time
+!!TODO: constructor which takes ancestor!
+contains
+    procedure :: write_now => write_now_inq
+end type diag_file_plus_type
+
+
 !> Placeholder for fms2_io file object type.
 !! TODO: Rename to fms_fname_type ?
 type fms_io_obj
@@ -66,8 +81,8 @@ public :: three_hourly, six_hourly, r8, r4, i8, i4, string
 public :: diag_error, fms_io_obj
 public :: fatal, note, warning
 
+CONTAINS
 
-contains
 !> \brief Wrapper for error routine to be used.
 subroutine diag_error(sub,mess,lev,mycomm)
 character(len=*), intent(in)  :: sub
@@ -112,5 +127,15 @@ if (lev==fatal) then
 endif
 
 end subroutine diag_error
+
+!> Return true if this file expect data to be writen at
+!>  this time based on ...
+function write_now_inq(obj, ctime) result (rslt)
+    class(diag_file_plus_type) :: obj
+    integer, intent(in) :: ctime
+    logical :: rslt
+    rslt = .true.
+end function write_now_inq
+
 
 end module fms_diag_data_mod
