@@ -17,10 +17,9 @@ use fms_diag_table_mod !get_diag_table_field
 use fms_diag_register_mod
 use fms_diag_object_mod, only: operator (>),operator (<),operator (>=),&
                                operator (<=),operator (==),operator (.ne.)
-use fms_diag_object_mod, only: fms_diag_object_scalar, fms_diag_object_1d, &
+use fms_diag_send_data_mod, only: fms_diag_object_scalar, fms_diag_object_1d, &
                                fms_diag_object_2d, fms_diag_object_4d, &
-                               fms_diag_object_5d
-use fms_diag_object_3d_mod, only: fms_diag_object_3d  !!TODO: MZ
+                               fms_diag_object_5d, fms_diag_object_3d
 
 use fms_diag_object_mod, only: fms_diag_object
 use fms_diag_send_data_mod, only: send_data

@@ -1,7 +1,6 @@
 module fms_diag_util_mod
 implicit none
 !> Miscellanoeous utility functions.
-!!TODO: Whats the best place to put these?
 
 contains
 

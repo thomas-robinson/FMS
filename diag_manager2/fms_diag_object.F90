@@ -87,63 +87,17 @@ type    fms_diag_object
      procedure :: print_testc => diag_obj_print_testc
 end type fms_diag_object
 
-!> \brief Extends the variable object to work with multiple types of data
-type, extends(fms_diag_object) :: fms_diag_object_scalar
-     class(*), allocatable :: vardata
-contains
-!     procedure :: send_data => send_data_scalar !!TODO
-end type fms_diag_object_scalar
 
-type, extends(fms_diag_object) :: fms_diag_object_1d
-     class(*), allocatable, dimension(:) :: vardata
-contains
-     !procedure :: send_data => send_data_1d  !!TODO
-end type fms_diag_object_1d
 
-type, extends(fms_diag_object) :: fms_diag_object_2d
-     class(*), allocatable, dimension(:,:) :: vardata
-contains
-     !procedure :: send_data => send_data_2d  !!TODO
-end type fms_diag_object_2d
-
-!TODO: Moved to its own file
-!type, extends(fms_diag_object) :: fms_diag_object_3d
-!     class(*), allocatable, dimension(:,:,:) :: vardata
-!contains
-!    procedure :: send_data => send_data_3d
-!end type fms_diag_object_3d
-
-type, extends(fms_diag_object) :: fms_diag_object_4d
-
-contains
-     !procedure :: send_data => send_data_4d  !!TODO:
-end type fms_diag_object_4d
-
-type, extends(fms_diag_object) :: fms_diag_object_5d
-     class(*), allocatable, dimension(:,:,:,:,:) :: vardata
-contains
-     !procedure :: send_data => send_data_5d !!TODO:
-end type fms_diag_object_5d
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! variables !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-type(fms_diag_object) :: null_ob
-type(fms_diag_object_scalar) :: null_sc
-type(fms_diag_object_1d) :: null_1d
-type(fms_diag_object_2d) :: null_2d
-!!type(fms_diag_object_3d) :: null_3d
-type(fms_diag_object_4d) :: null_4d
-type(fms_diag_object_5d) :: null_5d
 
 integer,private :: MAX_LEN_VARNAME
 integer,private :: MAX_LEN_META
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-public :: fms_diag_object, fms_diag_object_scalar, fms_diag_object_1d
-!!public :: fms_diag_object_2d, fms_diag_object_3d, fms_diag_object_4d, fms_diag_object_5d !!MZ TODO:
-public :: fms_diag_object_2d, fms_diag_object_4d, fms_diag_object_5d
+!public :: fms_diag_object, fms_diag_object_scalar, fms_diag_object_1d
+!public :: fms_diag_object_2d, fms_diag_object_4d, fms_diag_object_5d
 
 public :: copy_diag_obj, fms_diag_id_inq
 public :: operator (>),operator (<),operator (>=),operator (<=),operator (==),operator (.ne.)
-!public :: null_sc, null_1d, null_2d, null_3d, null_4d, null_5d   !!MZ TODO:
-public :: null_sc, null_1d, null_2d, null_4d, null_5d
 public :: fms_diag_object_init
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -157,13 +111,14 @@ subroutine fms_diag_object_init (mlv,mlm)
  MAX_LEN_VARNAME = mlv
  MAX_LEN_META = mlm
 !> Initialize the null_d variables
- null_ob%diag_id = DIAG_NULL
- null_sc%diag_id = DIAG_NULL
- null_1d%diag_id = DIAG_NULL
- null_2d%diag_id = DIAG_NULL
- !null_3d%diag_id = DIAG_NULL
- null_4d%diag_id = DIAG_NULL
- null_5d%diag_id = DIAG_NULL
+!!TODO: Move below
+ !null_ob%diag_id = DIAG_NULL
+! null_sc%diag_id = DIAG_NULL
+ !null_1d%diag_id = DIAG_NULL
+! null_2d%diag_id = DIAG_NULL
+! null_3d%diag_id = DIAG_NULL
+! null_4d%diag_id = DIAG_NULL
+! null_5d%diag_id = DIAG_NULL
 end subroutine fms_diag_object_init
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !> \Description Sets the diag_id to the not registered value.
