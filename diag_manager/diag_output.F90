@@ -18,7 +18,107 @@
 !***********************************************************************
 
 MODULE diag_output_mod
-#include <fms_platform.h>
+#ifndef __FMS_PLATFORM_
+#define __FMS_PLATFORM_
+
+
+!Set type kinds.
+#ifdef PORTABLE_KINDS
+use,intrinsic :: iso_fortran_env, only: real128
+use,intrinsic :: iso_c_binding, only: c_double,c_float,c_int64_t, &
+                                      c_int32_t,c_int16_t,c_intptr_t
+#define QUAD_KIND real128
+#define DOUBLE_KIND c_double
+#define FLOAT_KIND c_float
+#define LONG_KIND c_int64_t
+#define INT_KIND c_int32_t
+#define SHORT_KIND c_int16_t
+#define POINTER_KIND c_intptr_t
+#else
+!These values are not necessarily portable.
+#define QUAD_KIND 16
+#define DOUBLE_KIND 8
+#define FLOAT_KIND 4
+#define LONG_KIND 8
+#define INT_KIND 4
+#define SHORT_KIND 2
+#define POINTER_KIND 8
+!DEC$ MESSAGE:'Using 8-byte addressing'
+#endif
+
+
+!Control "pure" functions.
+#ifdef NO_F95
+#define _PURE
+!DEC$ MESSAGE:'Not using pure routines.'
+#else
+#define _PURE pure
+!DEC$ MESSAGE:'Using pure routines.'
+#endif
+
+
+!Control array members of derived types.
+#ifdef NO_F2000
+#define _ALLOCATABLE pointer
+#define _NULL =>null()
+#define _ALLOCATED associated
+!DEC$ MESSAGE:'Using pointer derived type array members.'
+#else
+#define _ALLOCATABLE allocatable
+#define _NULL
+#define _ALLOCATED allocated
+!DEC$ MESSAGE:'Using allocatable derived type array members.'
+#endif
+
+
+!Control use of cray pointers.
+#ifdef NO_CRAY_POINTERS
+#undef use_CRI_pointers
+!DEC$ MESSAGE:'Not using cray pointers.'
+#else
+#define use_CRI_pointers
+!DEC$ MESSAGE:'Using cray pointers.'
+#endif
+
+
+!Control size of integers that will hold address values.
+!Appears for legacy reasons, but seems rather dangerous.
+#ifdef _32bits
+#define POINTER_KIND 4
+!DEC$ MESSAGE:'Using 4-byte addressing'
+#endif
+
+
+!If you do not want to use 64-bit integers.
+#ifdef no_8byte_integers
+#define LONG_KIND INT_KIND
+#endif
+
+
+!If you do not want to use 32-bit floats.
+#ifdef no_4byte_reals
+#define FLOAT_KIND DOUBLE_KIND
+#define NF_GET_VAR_REAL nf_get_var_double
+#define NF_GET_VARA_REAL nf_get_vara_double
+#define NF_GET_ATT_REAL nf_get_att_double
+#undef OVERLOAD_R4
+#undef OVERLOAD_C4
+#endif
+
+
+!If you want to use quad-precision.
+! The NO_QUAD_PRECISION macro will be deprecated and removed at some future time.
+! Model code will rely solely upon the ENABLE_QUAD_PRECISION macro thereafer.
+#if defined(ENABLE_QUAD_PRECISION)
+#undef NO_QUAD_PRECISION
+#else
+#define NO_QUAD_PRECISION
+#undef QUAD_KIND
+#define QUAD_KIND DOUBLE_KIND
+#endif
+
+
+#endif
 
   ! <CONTACT EMAIL="seth.underwood@noaa.gov">
   !   Seth Underwood
@@ -28,9 +128,7 @@ MODULE diag_output_mod
   !   <TT>diag_manager_mod</TT>. Its function is to write axis-meta-data,
   !   field-meta-data and field data
   ! </OVERVIEW>
-use,intrinsic :: iso_fortran_env, only: real128
-use,intrinsic :: iso_c_binding, only: c_double,c_float,c_int64_t, &
-                                      c_int32_t,c_int16_t,c_intptr_t
+
 
   USE mpp_io_mod, ONLY: axistype, fieldtype, mpp_io_init, &
        & mpp_get_id, MPP_WRONLY, MPP_OVERWR,&
