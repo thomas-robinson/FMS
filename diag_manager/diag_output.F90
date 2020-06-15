@@ -1,3 +1,4 @@
+#ifndef old_diag
 !***********************************************************************
 !*                   GNU Lesser General Public License
 !*
@@ -1389,3 +1390,4 @@ class(FmsNetcdfFile_t), intent(inout)     :: fileob
   ! </SUBROUTINE>
 
 END MODULE diag_output_mod
+#endif

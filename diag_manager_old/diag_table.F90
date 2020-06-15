@@ -1,4 +1,4 @@
-#ifndef old_diag
+#ifdef old_diag
 !***********************************************************************
 !*                   GNU Lesser General Public License
 !*
