@@ -219,6 +219,7 @@ AC_CONFIG_FILES([Makefile
         exchange/Makefile
         drifters/Makefile
         diag_manager/Makefile
+        diag_manager_old/Makefile
         data_override/Makefile
         column_diagnostics/Makefile
         block_control/Makefile
