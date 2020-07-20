@@ -302,7 +302,7 @@ CONTAINS
     ELSE
        Axes(diag_axis_init)%req = 'none'
     END IF
-    #ifndef use_mpp_io
+#ifndef use_mpp_io
     IF ( PRESENT(domain_position) ) THEN
        if (domain_position == NORTH .or. domain_position == EAST .or. domain_position == CENTER) then
           Axes(diag_axis_init)%domain_position = domain_position
