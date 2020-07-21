@@ -119,7 +119,7 @@ jobs:
         - ./configure ${DISTCHECK_CONFIGURE_FLAGS}
         - make -j distcheck
 #build_with_autotools_mpp_io
-    - name: build_with_autotools
+    - name: build_with_autotools_mpp_io
       env:
         - FCFLAGS_ADD='' DISTCHECK_CONFIGURE_FLAGS='--enable-mpp-io'
 
