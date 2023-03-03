@@ -16,6 +16,7 @@
 !* You should have received a copy of the GNU Lesser General Public
 !* License along with FMS.  If not, see <http://www.gnu.org/licenses/>.
 !***********************************************************************
+NEVER MERGE THIS
 !> @defgroup diag_manager_mod diag_manager_mod
 !> @ingroup diag_manager
 !! @brief diag_manager_mod is a set of simple calls for parallel diagnostics
