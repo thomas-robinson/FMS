@@ -711,6 +711,13 @@ else if(clim_type%r8_type%is_allocated) then
       deallocate(clim_type%r8_type%nmon_pyear)
    end if
 endif
+if (allocated(clim_type%indexm)) deallocate(clim_type%indexm)
+if (allocated(clim_type%indexp)) deallocate(clim_type%indexp)
+if (allocated(clim_type%climatology)) deallocate(clim_type%climatology)
+if (allocated(clim_type%clim_times)) deallocate(clim_type%clim_times)
+
+clim_type%r4_type%is_allocated=.false.
+clim_type%r8_type%is_allocated=.false.
 
 clim_type%r4_type%is_allocated=.false.
 clim_type%r8_type%is_allocated=.false.
