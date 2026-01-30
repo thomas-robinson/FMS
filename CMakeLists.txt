@@ -56,6 +56,7 @@ option(32BIT       "Build 32-bit (r4) FMS library"        OFF)
 option(64BIT       "Build 64-bit (r8) FMS library"        OFF)
 option(FPIC        "Build with position independent code" OFF)
 option(SHARED_LIBS "Build shared/dynamic libraries"       OFF)
+option(ENABLE_KOKKOS "Build FMS with Kokkos support"      OFF)
 
 # Options for compiler definitions
 option(INTERNAL_FILE_NML     "Enable compiler definition -DINTERNAL_FILE_NML"      ON)
@@ -90,6 +91,13 @@ endif()
 if (WITH_YAML)
   find_package(PkgConfig REQUIRED)
   pkg_check_modules(YAML REQUIRED IMPORTED_TARGET "yaml-0.1")
+endif ()
+
+# Check for Kokkos library
+if (ENABLE_KOKKOS)
+  find_package(Kokkos REQUIRED)
+  message(STATUS "Kokkos found: ${Kokkos_DIR}")
+  list(APPEND fms_defs ENABLE_KOKKOS)
 endif ()
 
 # Enables position independent code (i.e., -fPIC)
@@ -195,6 +203,13 @@ list(APPEND fms_fortran_src_files
   libFMS.F90
 )
 
+# Add Kokkos Fortran source files if enabled
+if (ENABLE_KOKKOS)
+  list(APPEND fms_fortran_src_files
+    kokkos/fms_kokkos.F90
+  )
+endif ()
+
 # Collect FMS C source files
 list(APPEND fms_c_src_files
   affinity/affinity.c
@@ -209,6 +224,13 @@ list(APPEND fms_c_src_files
   string_utils/fms_string_utils_binding.c
   test_fms/fms/test_fmsC.c # TODO just easier to lump this with the rest of the C src
 )
+
+# Add Kokkos C++ source files if enabled
+if (ENABLE_KOKKOS)
+  list(APPEND fms_c_src_files
+    kokkos/fms_kokkos_binding.cpp
+  )
+endif ()
 
 # Collect FMS header files
 list(APPEND fms_header_files
@@ -404,7 +426,8 @@ foreach(kind ${kinds})
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/mosaic2/include>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/data_override/include>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/tridiagonal/include>
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/amip_interp/include>)
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/amip_interp/include>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/kokkos/include>)
   set(moduleDir "${CMAKE_CURRENT_BINARY_DIR}/${includeDir}")
   target_include_directories(${libTgt} INTERFACE
     $<BUILD_INTERFACE:${moduleDir}>
@@ -423,6 +446,10 @@ foreach(kind ${kinds})
 
   if(OpenMP_Fortran_FOUND)
     target_link_libraries(${libTgt} PRIVATE OpenMP::OpenMP_C OpenMP::OpenMP_Fortran)
+  endif()
+
+  if(ENABLE_KOKKOS)
+    target_link_libraries(${libTgt} PRIVATE Kokkos::kokkos)
   endif()
 
   add_library(FMS::${libTgt} ALIAS ${libTgt})

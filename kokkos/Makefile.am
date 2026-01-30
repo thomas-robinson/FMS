@@ -16,17 +16,23 @@
 #* governing permissions and limitations under the License.
 #***********************************************************************
 
-# This is the automake file for the test_fms directory.
-# Ed Hartnett 9/20/2019
+if ENABLE_KOKKOS
+  AM_FCFLAGS += -DENABLE_KOKKOS
+  AM_CXXFLAGS += -DENABLE_KOKKOS
+endif
 
-# This directory stores libtool macros, put there by aclocal.
-ACLOCAL_AMFLAGS = -I m4
+SUBDIRS = include
 
-# Make targets will be run in each subdirectory. Order is significant.
-SUBDIRS = common astronomy coupler diag_manager data_override exchange monin_obukhov drifters \
-mosaic2 interpolator fms mpp time_interp time_manager horiz_interp topography \
-field_manager axis_utils affinity fms2_io parser string_utils sat_vapor_pres tracer_manager \
-random_numbers diag_integral column_diagnostics tridiagonal offloading block_control kokkos
+noinst_LTLIBRARIES = libkokkos.la
 
-# testing utility scripts to distribute
-EXTRA_DIST = test-lib.sh.in intel_coverage.sh.in tap-driver.sh
+libkokkos_la_SOURCES = \
+	fms_kokkos.F90 \
+	fms_kokkos_binding.cpp
+
+libkokkos_la_CPPFLAGS = -I$(top_srcdir)/kokkos/include
+
+if ENABLE_KOKKOS
+  libkokkos_la_CXXFLAGS = $(KOKKOS_CXXFLAGS)
+  libkokkos_la_LDFLAGS = $(KOKKOS_LDFLAGS)
+  libkokkos_la_LIBADD = $(KOKKOS_LIBS)
+endif

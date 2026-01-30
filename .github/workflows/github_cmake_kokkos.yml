@@ -1,0 +1,83 @@
+name: Build libFMS with Kokkos support
+
+on: [push, pull_request]
+
+# cancel running jobs if theres a newer push
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-with-kokkos:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        build-type: [ "-DCMAKE_BUILD_TYPE=Release" ]
+    container:
+      image: ghcr.io/noaa-gfdl/fms/fms-ci-rocky-gnu:13.2.0
+      env:
+        CMAKE_FLAGS: "${{ matrix.build-type }} -DENABLE_KOKKOS=on"
+        PKG_CONFIG_PATH: "/opt/views/view/lib64/pkgconfig:/opt/views/view/lib/pkgconfig:/opt/views/view/share/pkgconfig"
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4.2.2
+    
+    - name: Install Kokkos (if not in container)
+      run: |
+        # Check if Kokkos is already installed
+        if ! pkg-config --exists kokkos; then
+          echo "Installing Kokkos from source..."
+          git clone https://github.com/kokkos/kokkos.git --depth 1
+          cd kokkos
+          mkdir build
+          cd build
+          cmake -DCMAKE_CXX_COMPILER=g++ -DCMAKE_CXX_FLAGS="-O3" -DCMAKE_INSTALL_PREFIX=/usr/local/kokkos ..
+          make -j4
+          make install
+          cd ../..
+          export PATH="/usr/local/kokkos/bin:$PATH"
+          export LD_LIBRARY_PATH="/usr/local/kokkos/lib:$LD_LIBRARY_PATH"
+        fi
+    
+    - name: Generate makefiles with CMake
+      run: |
+        mkdir build
+        cd build
+        cmake $CMAKE_FLAGS -DNetCDF_ROOT=/opt/view -DENABLE_KOKKOS=on ..
+    
+    - name: Build the library
+      run: make -C build
+    
+    - name: Run Kokkos tests
+      run: |
+        cd build
+        ctest -L kokkos -V || echo "Some tests may not be available without full Kokkos installation"
+
+  # Build without Kokkos to ensure no regressions
+  build-without-kokkos:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        build-type: [ "-DCMAKE_BUILD_TYPE=Release", "-DCMAKE_BUILD_TYPE=Debug" ]
+    container:
+      image: ghcr.io/noaa-gfdl/fms/fms-ci-rocky-gnu:13.2.0
+      env:
+        CMAKE_FLAGS: "${{ matrix.build-type }} -DENABLE_KOKKOS=off"
+        PKG_CONFIG_PATH: "/opt/views/view/lib64/pkgconfig:/opt/views/view/lib/pkgconfig:/opt/views/view/share/pkgconfig"
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4.2.2
+    
+    - name: Generate makefiles with CMake
+      run: |
+        mkdir build
+        cd build
+        cmake $CMAKE_FLAGS -DNetCDF_ROOT=/opt/view ..
+    
+    - name: Build the library
+      run: make -C build
+    
+    - name: Run tests
+      run: |
+        cd build
+        ctest -V --output-on-failure

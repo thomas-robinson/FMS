@@ -1,3 +1,4 @@
+#!/bin/bash
 #***********************************************************************
 #*                             Apache License 2.0
 #*
@@ -16,17 +17,20 @@
 #* governing permissions and limitations under the License.
 #***********************************************************************
 
-# This is the automake file for the test_fms directory.
-# Ed Hartnett 9/20/2019
+# Test script for FMS Kokkos views
 
-# This directory stores libtool macros, put there by aclocal.
-ACLOCAL_AMFLAGS = -I m4
+# Get the directory where the test script is located
+TESTDIR=$(cd "$(dirname "$0")" && pwd)
 
-# Make targets will be run in each subdirectory. Order is significant.
-SUBDIRS = common astronomy coupler diag_manager data_override exchange monin_obukhov drifters \
-mosaic2 interpolator fms mpp time_interp time_manager horiz_interp topography \
-field_manager axis_utils affinity fms2_io parser string_utils sat_vapor_pres tracer_manager \
-random_numbers diag_integral column_diagnostics tridiagonal offloading block_control kokkos
+# Run the test
+$TESTDIR/test_fms_kokkos_views
+exit_code=$?
 
-# testing utility scripts to distribute
-EXTRA_DIST = test-lib.sh.in intel_coverage.sh.in tap-driver.sh
+# Report results
+if [ $exit_code -eq 0 ]; then
+  echo "test_fms_kokkos_views: PASSED"
+  exit 0
+else
+  echo "test_fms_kokkos_views: FAILED"
+  exit 1
+fi

@@ -69,6 +69,7 @@ SUBDIRS = \
   topography \
   sat_vapor_pres \
   random_numbers \
+  kokkos \
   . \
   libFMS \
   test_fms \

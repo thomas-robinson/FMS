@@ -65,6 +65,13 @@ AC_ARG_WITH([yaml],
 AS_IF([test ${with_yaml:-no} = no],
   [with_yaml=no],
   [with_yaml=yes])
+AC_ARG_WITH([kokkos],
+  [AS_HELP_STRING([--with-kokkos=PATH],
+    [Build with Kokkos support, optionally specify the installation prefix. (Default no)])])
+AS_IF([test "x${with_kokkos}" = x],
+  [with_kokkos=no])
+AS_IF([test "x${with_kokkos}" = xyes],
+  [with_kokkos=/usr/local])
 AC_ARG_ENABLE([setting-flags],
   [AS_HELP_STRING([--enable-setting-flags],
     [Allow configure to set some compiler flags.  Disabling this will also disable any other --with or --enable options that set flags, and will only use user-provided falgs. (Default yes)])])
@@ -204,6 +211,30 @@ if test $with_yaml = yes; then
   AM_CONDITIONAL([USING_YAML], true)
 else
   AM_CONDITIONAL([USING_YAML], false)
+fi
+
+# Check for Kokkos
+if test "x$with_kokkos" != "xno"; then
+  AC_CHECK_HEADERS([Kokkos_Core.hpp], [], [AC_MSG_ERROR(["Can't find the Kokkos header file.  Set CPPFLAGS or use --with-kokkos=/path"])])
+  AC_LANG_PUSH(C++)
+  # Try to link a simple Kokkos program
+  SAVE_CXXFLAGS=$CXXFLAGS
+  SAVE_LDFLAGS=$LDFLAGS
+  SAVE_LIBS=$LIBS
+  if test "x$with_kokkos" != "xno"; then
+    CXXFLAGS="$CXXFLAGS -I$with_kokkos/include"
+    LDFLAGS="$LDFLAGS -L$with_kokkos/lib"
+  fi
+  AC_SEARCH_LIBS([kokkos_initialize], [kokkos], [], [AC_MSG_WARN(["Kokkos library not found, continuing with Kokkos stub implementation"])])
+  AC_LANG_POP(C++)
+  CXXFLAGS=$SAVE_CXXFLAGS
+  LDFLAGS=$SAVE_LDFLAGS
+  LIBS=$SAVE_LIBS
+
+  AC_DEFINE([ENABLE_KOKKOS], [1], [Kokkos support enabled])
+  AM_CONDITIONAL([ENABLE_KOKKOS], true)
+else
+  AM_CONDITIONAL([ENABLE_KOKKOS], false)
 fi
 
 # Require netCDF
